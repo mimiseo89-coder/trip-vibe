@@ -7,18 +7,54 @@ import { MapPin, Calendar, Clock, ArrowLeft, MoreHorizontal, Sparkles } from 'lu
  * Future enhancement: Fetch real data from Gemini API.
  */
 const ScheduleView = ({ tripData, onBack }) => {
-  // Demo data for now
-  const schedule = [
-    {
-      day: 1,
-      date: tripData?.startDate || '2024-04-05',
-      places: [
-        { name: '공항 도착 및 숙소 체크인', time: '14:00', reason: '편안한 여행의 시작' },
-        { name: '현지 유명 맛집 탐방', time: '18:00', reason: '현지의 맛을 느낄 수 있는 첫 저녁' },
-        { name: '야경 명소 산책', time: '20:30', reason: '아름다운 야경과 함께하는 여유' }
-      ]
+  const schedule = React.useMemo(() => {
+    if (!tripData?.startDate || !tripData?.endDate) {
+      return [{
+        day: 1,
+        date: '2024-04-05',
+        places: [
+          { name: '공항 도착 및 숙소 체크인', time: '14:00', reason: '편안한 여행의 시작' },
+          { name: '현지 유명 맛집 탐방', time: '18:00', reason: '현지의 맛을 느낄 수 있는 첫 저녁' },
+          { name: '야경 명소 산책', time: '20:30', reason: '아름다운 야경과 함께하는 여유' }
+        ]
+      }];
     }
-  ];
+
+    const start = new Date(tripData.startDate);
+    const end = new Date(tripData.endDate);
+    const diffTime = Math.abs(end - start);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+    return Array.from({ length: diffDays }, (_, i) => {
+      const date = new Date(start);
+      date.setDate(start.getDate() + i);
+      const dateStr = date.toISOString().split('T')[0];
+
+      const demoPlaces = [
+        [
+          { name: '공항 도착 및 숙소 체크인', time: '14:00', reason: '편안한 여행의 시작' },
+          { name: '현지 유명 맛집 탐방', time: '18:00', reason: '현지의 맛을 느낄 수 있는 첫 저녁' },
+          { name: '야경 명소 산책', time: '20:30', reason: '아름다운 야경과 함께하는 여유' }
+        ],
+        [
+          { name: '브런치 카페 방문', time: '10:30', reason: '여유로운 아침 식사' },
+          { name: '주요 랜드마크 관광', time: '13:00', reason: '놓칠 수 없는 여행 코스' },
+          { name: '전통 시장 구경', time: '16:30', reason: '현지의 정취를 느끼는 시간' }
+        ],
+        [
+          { name: '공원 산책 및 휴식', time: '11:00', reason: '마지막 날의 여유' },
+          { name: '기념품 쇼핑', time: '14:00', reason: '가족과 친구들을 위한 선물' },
+          { name: '공항 이동 및 복귀', time: '17:00', reason: '즐거웠던 여행 마무리' }
+        ]
+      ];
+
+      return {
+        day: i + 1,
+        date: dateStr,
+        places: demoPlaces[i % 3]
+      };
+    });
+  }, [tripData]);
 
   return (
     <div className="schedule-page">
