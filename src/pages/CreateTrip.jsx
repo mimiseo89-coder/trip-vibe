@@ -144,7 +144,7 @@ const CreateTrip = ({ onBack, onSubmit }) => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .create-trip-page {
           background: linear-gradient(135deg, #1E3A5F 0%, #0F172A 100%);
           min-height: 100vh;

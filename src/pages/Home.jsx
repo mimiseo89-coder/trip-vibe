@@ -1,13 +1,41 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plane, Calendar, Users, Star, ArrowRight } from 'lucide-react';
+import { Plane, Calendar, Users, Star, ArrowRight, Trash2, MapPin } from 'lucide-react';
+import { getSavedTrips, deleteTrip } from '../utils/storage';
 import heroBg from '../assets/hero-bg.png';
 
 /**
  * Home Page - The landing experience for TripMate AI.
  * Focuses on emotional appeal and the core value proposition.
  */
-const Home = ({ onStart }) => {
+const Home = ({ onStart, onViewTrip }) => {
+  const [savedTrips, setSavedTrips] = useState([]);
+
+  useEffect(() => {
+    setSavedTrips(getSavedTrips());
+  }, []);
+
+  const handleDelete = (e, id) => {
+    e.stopPropagation();
+    if (window.confirm('정말 이 여행 일정을 삭제하시겠습니까?')) {
+      deleteTrip(id);
+      setSavedTrips(getSavedTrips());
+    }
+  };
+
+  const calculateDDay = (startDate) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    
+    const diffTime = start - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'D-Day';
+    return diffDays > 0 ? `D-${diffDays}` : `D+${Math.abs(diffDays)}`;
+  };
+
   return (
     <div className="home-page">
       {/* Hero Section */}
@@ -59,6 +87,45 @@ const Home = ({ onStart }) => {
         </div>
       </header>
 
+      {/* Saved Trips Section */}
+      {savedTrips.length > 0 && (
+        <section className="saved-trips container">
+          <div className="section-header">
+            <h2>나의 여행 리스트</h2>
+            <p>저장된 여행 일정을 확인하고 관리하세요.</p>
+          </div>
+          <div className="trips-grid">
+            {savedTrips.map((trip) => (
+              <motion.div 
+                key={trip.id}
+                className="trip-card glass"
+                whileHover={{ y: -5 }}
+                onClick={() => onViewTrip(trip)}
+              >
+                <div className="trip-dday">{calculateDDay(trip.startDate)}</div>
+                <div className="trip-info">
+                  <div className="trip-destination">
+                    <MapPin size={16} />
+                    <span>{trip.destination}</span>
+                  </div>
+                  <div className="trip-date">
+                    <Calendar size={14} />
+                    <span>{trip.startDate} ~ {trip.endDate}</span>
+                  </div>
+                </div>
+                <button 
+                  className="btn-delete" 
+                  onClick={(e) => handleDelete(e, trip.id)}
+                  title="삭제"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Features Preview */}
       <section className="features-preview container">
         <div className="feature-card glass">
@@ -78,12 +145,13 @@ const Home = ({ onStart }) => {
         </div>
       </section>
 
-      <style jsx>{`
+      <style>{`
         .home-page {
           min-height: 100vh;
           position: relative;
-          color: var(--white);
+          color: var(--text-main);
           overflow-x: hidden;
+          background-color: var(--bg-light);
         }
 
         .hero {
@@ -93,6 +161,7 @@ const Home = ({ onStart }) => {
           align-items: center;
           justify-content: center;
           text-align: center;
+          color: var(--white);
         }
 
         .hero-img {
@@ -175,15 +244,116 @@ const Home = ({ onStart }) => {
           box-shadow: 0 15px 30px rgba(255, 154, 60, 0.4);
         }
 
+
+        .saved-trips {
+          padding-top: 80px;
+          padding-bottom: 40px;
+        }
+
+        .section-header {
+          margin-bottom: 32px;
+          text-align: left;
+        }
+
+        .section-header h2 {
+          font-family: 'Outfit';
+          font-size: 2rem;
+          font-weight: 700;
+          margin-bottom: 8px;
+        }
+
+        .section-header p {
+          opacity: 0.7;
+          font-size: 1.1rem;
+        }
+
+        .trips-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 24px;
+        }
+
+        .trip-card {
+          position: relative;
+          padding: 24px;
+          border-radius: 20px;
+          cursor: pointer;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          background: var(--white);
+          border: 1px solid rgba(0, 0, 0, 0.05);
+          box-shadow: var(--shadow-sm);
+          transition: var(--transition-smooth);
+        }
+
+        .trip-card:hover {
+          box-shadow: var(--shadow-md);
+          border-color: var(--secondary-color);
+        }
+
+        .trip-dday {
+          position: absolute;
+          top: 20px;
+          right: 20px;
+          background: var(--secondary-color);
+          color: var(--white);
+          padding: 4px 12px;
+          border-radius: 100px;
+          font-size: 0.8rem;
+          font-weight: 700;
+        }
+
+        .trip-info {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .trip-destination {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 1.2rem;
+          font-weight: 600;
+        }
+
+        .trip-date {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 0.9rem;
+          opacity: 0.7;
+        }
+
+        .btn-delete {
+          position: absolute;
+          bottom: 20px;
+          right: 20px;
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: rgba(0, 0, 0, 0.3);
+          transition: all 0.2s ease;
+        }
+
+        .btn-delete:hover {
+          background: rgba(255, 59, 48, 0.1);
+          color: #ff3b30;
+        }
+
         .features-preview {
+          padding: 80px 0;
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 24px;
-          margin-top: -100px;
           position: relative;
           z-index: 10;
-          padding-bottom: 100px;
         }
+
 
         .feature-card {
           padding: 2rem;

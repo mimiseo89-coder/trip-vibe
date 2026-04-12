@@ -1,0 +1,34 @@
+Q) 테스트 하고 실행해 줘
+A) 테스트 결과
+Listed directory Trip_vibe
+Viewed package.json:1-24
+Ran command: `npm run dev`
+Viewed PRD:1-78
+Browser task: "Testing Home Page"
+Listed directory pages
+Viewed App.jsx:1-51
+Viewed Home.jsx:1-232
+Browser task: "Testing Full Flow"
+Viewed schedule_view_page_1775725530395.png
+
+프로젝트를 테스트하고 실행한 결과, 주요 기능들이 정상적으로 작동하는 것을 확인했습니다.
+
+### 🟢 테스트 요약
+- **실행 환경**: Vite 개발 서버 (`http://localhost:5173`)
+- **테스트 시나리오**: 홈 페이지 ➔ 여행 생성 폼 작성 ➔ AI 일정 생성 ➔ 일정 뷰 확인
+- **결과**: **성공**
+
+### 🔍 상세 테스트 내용
+1.  **홈 페이지 (`Home.jsx`)**: "새 여행 만들기" 버튼이 정상적으로 작동하며, 세련된 히어로 섹션과 애니메이션이 잘 표현됩니다.
+2.  **여행 생성 (`CreateTrip.jsx`)**: 여행지(Japan), 기간, 인원, 스타일(맛집/카페) 정보를 입력하고 제출하는 과정이 매끄럽게 진행되었습니다.
+3.  **일정 뷰 (`ScheduleView.jsx`)**: 입력한 정보를 바탕으로 AI가 생성한(시뮬레이션된) 타임라인 형태의 일정이 날짜별로 명확하게 표시되는 것을 확인했습니다.
+
+### 📸 테스트 결과 화면
+생성된 일정 뷰의 스크린샷입니다:
+![일정 뷰 확인](file:///C:/Users/young/.gemini/antigravity/brain/6efe1ce2-4637-4ccc-8c2f-2cc10eb90360/schedule_view_page_1775725530395.png)
+
+### 🛠️ 향후 권장 사항
+- 현재 `package.json`에 정의된 자동화 테스트(`npm test`)가 없습니다. 프로젝트 규모가 커짐에 따라 **Vitest**나 **Playwright**를 활용한 테스트 코드 도입을 추천드립니다.
+- 현재 개발 서버가 백그라운드에서 실행 중입니다. 브라우저에서 `http://localhost:5173`에 접속하여 직접 확인하실 수 있습니다.
+
+추가로 수정이나 고도화가 필요한 부분이 있다면 말씀해 주세요!
