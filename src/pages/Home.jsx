@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plane, Calendar, Users, Star, ArrowRight, Trash2, MapPin } from 'lucide-react';
 import { getSavedTrips, deleteTrip } from '../utils/storage';
-import heroBg from '../assets/hero-bg.png';
+import heroBg from '../assets/spring-hero-bg.png';
 
 /**
  * Home Page - The landing experience for TripMate AI.
@@ -180,7 +180,7 @@ const Home = ({ onStart, onViewTrip }) => {
           left: 0;
           width: 100%;
           height: 100%;
-          background: linear-gradient(to bottom, rgba(30, 58, 95, 0.4), rgba(30, 58, 95, 0.8));
+          background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.5));
           z-index: -1;
         }
 

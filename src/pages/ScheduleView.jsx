@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, Clock, ArrowLeft, Trash2, Edit3, Save, Sparkles, Plus, Luggage, Loader2 } from 'lucide-react';
+import { MapPin, Calendar, Clock, ArrowLeft, Trash2, Edit3, Save, Sparkles, Plus, Luggage, Loader2, Send, Share2, CheckCircle2, Hotel, Ticket, Plane, MessageSquare, ListChecks } from 'lucide-react';
 import { saveTrip } from '../utils/storage';
-import { generateAISchedule } from '../utils/ai';
+import { generateAISchedule, updateAISchedule } from '../utils/ai';
+import PackingList from './PackingList';
 
 /**
  * ScheduleView - Displays and allows editing of the AI-generated itinerary.
@@ -11,12 +12,27 @@ const ScheduleView = ({ tripData, onBack, onGoToPacking }) => {
   const [localSchedule, setLocalSchedule] = useState([]);
   const [isSaved, setIsSaved] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [activeTab, setActiveTab] = useState('schedule'); // 'schedule', 'reservations', or 'packing'
+  const [chatInput, setChatInput] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [packingList, setPackingList] = useState(tripData?.packingList || []);
+  const [reservations, setReservations] = useState(tripData?.reservations || [
+    { id: 'res-1', category: '항공', title: '출발 편 명', note: '', isCompleted: false },
+    { id: 'res-2', category: '숙소', title: '메인 호텔 예약', note: '', isCompleted: false },
+    { id: 'res-3', category: '입장권', title: '명소 입장권', note: '', isCompleted: false }
+  ]);
 
   // Initialize schedule
   useEffect(() => {
     const initSchedule = async () => {
       if (tripData?.itinerary) {
         setLocalSchedule(tripData.itinerary);
+        if (tripData.reservations) {
+          setReservations(tripData.reservations);
+        }
+        if (tripData.packingList) {
+          setPackingList(tripData.packingList);
+        }
         setIsSaved(true);
       } else {
         setIsGenerating(true);
@@ -116,6 +132,8 @@ const ScheduleView = ({ tripData, onBack, onGoToPacking }) => {
       ...tripData,
       id: tripData.id || `trip-${Date.now()}`,
       itinerary: localSchedule,
+      reservations: reservations,
+      packingList: packingList,
       updatedAt: new Date().toISOString()
     };
     
@@ -123,6 +141,62 @@ const ScheduleView = ({ tripData, onBack, onGoToPacking }) => {
     if (success) {
       setIsSaved(true);
       alert('여행 일정이 저장되었습니다!');
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!chatInput.trim() || isUpdating) return;
+
+    const request = chatInput;
+    setChatInput('');
+    setIsUpdating(true);
+
+    try {
+      const updated = await updateAISchedule(localSchedule, tripData, request);
+      setLocalSchedule(updated);
+      setIsSaved(false);
+      alert('일정이 성공적으로 수정되었습니다!');
+    } catch (error) {
+      console.error("Failed to update schedule:", error);
+      alert('일정 수정 중 오류가 발생했습니다. 다시 시도해 주세요.');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const toggleReservation = (id) => {
+    setReservations(prev => prev.map(res => 
+      res.id === id ? { ...res, isCompleted: !res.isCompleted } : res
+    ));
+    setIsSaved(false);
+  };
+
+  const updateReservationNote = (id, note) => {
+    setReservations(prev => prev.map(res => 
+      res.id === id ? { ...res, note } : res
+    ));
+    setIsSaved(false);
+  };
+
+  const addReservation = (category) => {
+    const newRes = {
+      id: `res-${Date.now()}`,
+      category,
+      title: `${category} 항목`,
+      note: '',
+      isCompleted: false
+    };
+    setReservations(prev => [...prev, newRes]);
+    setIsSaved(false);
+  };
+
+  const handleShare = (type) => {
+    if (type === 'link') {
+      const url = window.location.href;
+      navigator.clipboard.writeText(url);
+      alert('여행 링크가 복사되었습니다! (데모버전에서는 현재 URL이 복사됩니다)');
+    } else {
+      alert('이미지로 저장 기능은 현재 준비 중입니다. 곧 만나보실 수 있어요!');
     }
   };
 
@@ -163,9 +237,6 @@ const ScheduleView = ({ tripData, onBack, onGoToPacking }) => {
               <ArrowLeft size={18} /> {tripData?.itinerary ? '목록으로' : '이전으로'}
             </button>
             <div className="header-actions">
-              <button className="btn-packing" onClick={onGoToPacking}>
-                <Luggage size={18} /> 짐싸기 체크리스트
-              </button>
               <button 
                 className={`btn-save ${isSaved ? 'saved' : ''}`} 
                 onClick={handleSave}
@@ -185,361 +256,420 @@ const ScheduleView = ({ tripData, onBack, onGoToPacking }) => {
           </div>
         </header>
 
-        <section className="itinerary mt-10">
-          {isGenerating ? (
-            <div className="generating-state">
-              <Loader2 size={40} className="animate-spin" />
-              <p>AI가 완벽한 일정을 짜고 있습니다...</p>
-              <span>{tripData?.destination}의 숨은 명소를 찾는 중이에요.</span>
+        <section className="tabs mt-6">
+          <div className="tab-buttons">
+            <button 
+              className={`tab-btn ${activeTab === 'schedule' ? 'active' : ''}`}
+              onClick={() => setActiveTab('schedule')}
+            >
+              <Calendar size={18} /> 일정 타임라인
+            </button>
+            <button 
+              className={`tab-btn ${activeTab === 'reservations' ? 'active' : ''}`}
+              onClick={() => setActiveTab('reservations')}
+            >
+              <ListChecks size={18} /> 예약 체크리스트
+            </button>
+            <button 
+              className={`tab-btn ${activeTab === 'packing' ? 'active' : ''}`}
+              onClick={() => setActiveTab('packing')}
+            >
+              <Luggage size={18} /> 짐싸기 체크리스트
+            </button>
+          </div>
+        </section>
+
+        <section className="content-view mt-6">
+          {activeTab === 'schedule' ? (
+            <div className="itinerary-view">
+              {isGenerating ? (
+                <div className="generating-state">
+                  <Loader2 size={40} className="animate-spin" />
+                  <p>AI가 완벽한 일정을 짜고 있습니다...</p>
+                  <span>{tripData?.destination}의 숨은 명소를 찾는 중이에요.</span>
+                </div>
+              ) : (
+                <>
+                  <div className="flex-between mb-6">
+                    <div className="ai-badge">
+                      <Sparkles size={14} /> AI가 추천하는 최적의 일정입니다
+                    </div>
+                    <div className="share-actions">
+                      <button className="btn-share-icon" onClick={() => handleShare('link')} title="링크 공유">
+                        <Share2 size={18} />
+                      </button>
+                      <button className="btn-share-icon" onClick={() => handleShare('image')} title="이미지 저장">
+                        <Save size={18} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="timeline-container">
+                    {localSchedule.map((day, dayIdx) => (
+                      <div key={day.day} className="day-section">
+                        <div className="day-indicator">
+                          <span className="day-num">Day {day.day}</span>
+                          <span className="day-date">{day.date}</span>
+                        </div>
+
+                        <div className="day-cards">
+                          {day.places.map((place, idx) => {
+                            const cat = getCategoryBadge(place.category);
+                            return (
+                              <motion.div 
+                                key={place.id || `place-${dayIdx}-${idx}`}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: idx * 0.1 }}
+                                className="place-card glass"
+                              >
+                                <div className="card-top">
+                                  <div className="card-time">
+                                    <Clock size={12} /> {place.time_slot || '시간대'}
+                                  </div>
+                                  {place.duration && (
+                                    <div className="card-duration">
+                                      <Calendar size={12} /> {place.duration}
+                                    </div>
+                                  )}
+                                  <span className={`cat-badge ${cat.class}`}>
+                                    {cat.emoji} {cat.label}
+                                  </span>
+                                </div>
+
+                                <div className="card-content">
+                                  <h3>{place.place_name || place.name}</h3>
+                                  <p className="place-desc">{place.description || place.reason}</p>
+                                  
+                                  <div className="memo-area mt-4">
+                                    <Edit3 size={12} className="memo-icon" />
+                                    <input 
+                                      type="text" 
+                                      placeholder="나만의 메모를 남겨보세요..." 
+                                      value={place.memo || ''} 
+                                      onChange={(e) => handleUpdateMemo(dayIdx, place.id, e.target.value)}
+                                      className="memo-input"
+                                    />
+                                  </div>
+                                </div>
+                                <button 
+                                  className="btn-delete-place"
+                                  onClick={() => handleDeletePlace(dayIdx, place.id)}
+                                  title="장소 삭제"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
-          ) : (
-            <>
-              <div className="ai-badge">
-                <Sparkles size={14} /> AI가 추천하는 최적의 일정입니다
+          ) : activeTab === 'reservations' ? (
+            <div className="reservations-view">
+              <div className="res-header">
+                <h2>예약 관리</h2>
+                <p>여행에 필요한 예약 항목을 리스트로 관리하세요.</p>
               </div>
 
-              <div className="timeline-container">
-                {localSchedule.map((day, dayIdx) => (
-                  <div key={day.day} className="day-section">
-                    <div className="day-indicator">
-                      <span className="day-num">Day {day.day}</span>
-                      <span className="day-date">{day.date}</span>
+              <div className="res-categories mt-6">
+                <button className="btn-add-res" onClick={() => addReservation('항공')}>
+                  <Plane size={16} /> 항공 추가
+                </button>
+                <button className="btn-add-res" onClick={() => addReservation('숙소')}>
+                  <Hotel size={16} /> 숙소 추가
+                </button>
+                <button className="btn-add-res" onClick={() => addReservation('입장권')}>
+                  <Ticket size={16} /> 입장권 추가
+                </button>
+              </div>
+
+              <div className="res-list mt-8">
+                {reservations.map((res) => (
+                  <div key={res.id} className={`res-item glass ${res.isCompleted ? 'completed' : ''}`}>
+                    <div className="res-check" onClick={() => toggleReservation(res.id)}>
+                      {res.isCompleted ? <CheckCircle2 className="checked" /> : <div className="unchecked" />}
                     </div>
-
-                    <div className="day-cards">
-                      {day.places.map((place, idx) => {
-                        const cat = getCategoryBadge(place.category);
-                        return (
-                          <motion.div 
-                            key={place.id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: idx * 0.1 }}
-                            className="place-card glass"
-                          >
-                            <div className="card-top">
-                              <div className="card-time">
-                                <Clock size={12} /> {place.time_slot || '시간대'}
-                              </div>
-                              {place.duration && (
-                                <div className="card-duration">
-                                  <Calendar size={12} /> {place.duration}
-                                </div>
-                              )}
-                              <span className={`cat-badge ${cat.class}`}>
-                                {cat.emoji} {cat.label}
-                              </span>
-                            </div>
-
-                            <div className="card-content">
-                              <h3>{place.place_name || place.name}</h3>
-                              <p className="place-desc">{place.description || place.reason}</p>
-                              
-                              <div className="memo-area mt-4">
-                                <Edit3 size={12} className="memo-icon" />
-                                <input 
-                                  type="text" 
-                                  placeholder="나만의 메모를 남겨보세요..." 
-                                  value={place.memo || ''} 
-                                  onChange={(e) => handleUpdateMemo(dayIdx, place.id, e.target.value)}
-                                  className="memo-input"
-                                />
-                              </div>
-                            </div>
-                            <button 
-                              className="btn-delete-place"
-                              onClick={() => handleDeletePlace(dayIdx, place.id)}
-                              title="장소 삭제"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          </motion.div>
-                        );
-                      })}
+                    <div className="res-info">
+                      <div className="res-tag">{res.category}</div>
+                      <input 
+                        type="text" 
+                        className="res-title-input" 
+                        value={res.title} 
+                        onChange={(e) => {
+                          const updated = reservations.map(r => r.id === res.id ? { ...r, title: e.target.value } : r);
+                          setReservations(updated);
+                          setIsSaved(false);
+                        }}
+                      />
+                      <div className="res-memo-box">
+                        <Edit3 size={12} />
+                        <input 
+                          type="text" 
+                          placeholder="예약 번호 또는 메모 입력" 
+                          value={res.note} 
+                          onChange={(e) => updateReservationNote(res.id, e.target.value)}
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
-            </>
+            </div>
+          ) : (
+            <div className="packing-view section-view">
+              <PackingList 
+                tripData={{ ...tripData, packingList }} 
+                onSaveTrip={(updatedData) => {
+                  setPackingList(updatedData.packingList);
+                  setIsSaved(false);
+                }}
+                isEmbedded={true}
+              />
+            </div>
           )}
         </section>
+
+        {/* AI Chat Assistant */}
+        <div className="ai-chat-bar">
+          <div className="chat-content">
+            <div className="chat-icon">
+              <MessageSquare size={18} />
+            </div>
+            <input 
+              type="text" 
+              placeholder='"맛집 위주로 다시 짜줘" 등 요청해보세요' 
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+              disabled={isUpdating}
+            />
+            <button 
+              className={`btn-send ${isUpdating ? 'loading' : ''}`}
+              onClick={handleSendMessage}
+              disabled={isUpdating}
+            >
+              {isUpdating ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+            </button>
+          </div>
+        </div>
       </div>
 
       <style>{`
         .schedule-page {
+          background-color: #F8FAFC;
           min-height: 100vh;
-          background-color: var(--bg-light);
-          color: var(--text-main);
         }
 
-        .btn-back-light {
-          display: flex;
-          align-items: center;
-          gap: 6px;
+        .schedule-header {
           background: white;
-          border: 1px solid #E2E8F0;
-          color: var(--text-muted);
-          padding: 8px 14px;
-          border-radius: 50px;
-          font-size: 0.9rem;
+          padding: 24px;
+          border-radius: 24px;
+          box-shadow: var(--shadow-sm);
+          margin-bottom: 24px;
         }
 
-        .header-actions {
-          display: flex;
-          gap: 10px;
-          align-items: center;
-        }
-
-        .btn-packing {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          background: white;
-          border: 1px solid var(--secondary-color);
-          color: var(--secondary-color);
-          padding: 8px 18px;
-          border-radius: 50px;
-          font-weight: 600;
-          font-size: 0.95rem;
-          transition: all 0.2s ease;
-        }
-
-        .btn-packing:hover {
-          background: rgba(255, 154, 60, 0.05);
-          transform: translateY(-2px);
-        }
-
-        .flex-between {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .btn-save {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          background: var(--secondary-color);
-          color: white;
-          padding: 8px 18px;
-          border-radius: 50px;
-          font-weight: 600;
-          font-size: 0.95rem;
-          transition: all 0.2s ease;
-        }
-
-        .btn-save:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(255, 154, 60, 0.3);
-        }
-
-        .btn-save.saved {
-          background: #10B981;
-        }
-
-        .btn-save:disabled {
-          opacity: 0.8;
-          cursor: default;
+        .trip-dest {
+          font-family: 'Outfit';
+          font-size: 2.5rem;
+          font-weight: 800;
+          color: var(--primary-color);
+          margin-bottom: 8px;
         }
 
         .trip-meta {
           display: flex;
           gap: 16px;
           color: var(--text-muted);
-          font-size: 0.95rem;
-          margin-top: 4px;
+          font-weight: 500;
         }
 
         .trip-meta span {
           display: flex;
           align-items: center;
-          gap: 4px;
-        }
-
-        .ai-badge {
-          display: inline-flex;
-          align-items: center;
           gap: 6px;
-          background: rgba(255, 154, 60, 0.1);
-          color: var(--secondary-color);
-          padding: 6px 12px;
-          border-radius: 8px;
-          font-size: 0.85rem;
-          font-weight: 600;
-          margin-bottom: 24px;
         }
 
-        .generating-state {
+        .tabs {
+          border-bottom: 2px solid #E2E8F0;
+          margin-bottom: 32px;
+        }
+
+        .tab-buttons {
           display: flex;
-          flex-direction: column;
+          gap: 32px;
+        }
+
+        .tab-btn {
+          display: flex;
           align-items: center;
-          justify-content: center;
-          padding: 80px 20px;
-          text-align: center;
-          color: var(--text-muted);
-        }
-
-        .generating-state p {
-          font-size: 1.2rem;
+          gap: 10px;
+          padding: 16px 4px;
           font-weight: 700;
+          color: #94A3B8;
+          position: relative;
+          background: transparent;
+          transition: all 0.2s ease;
+          font-size: 1.05rem;
+        }
+
+        .tab-btn.active {
           color: var(--primary-color);
-          margin-top: 16px;
-          margin-bottom: 8px;
         }
 
-        .generating-state span {
-          font-size: 0.9rem;
-          opacity: 0.7;
+        .tab-btn.active::after {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 0;
+          width: 100%;
+          height: 3px;
+          background: var(--primary-color);
+          border-radius: 10px;
         }
 
-        .animate-spin {
-          animation: spin 1s linear infinite;
-          color: var(--secondary-color);
+        /* Timeline & Day Section */
+        .itinerary-view {
+          padding-bottom: 154px;
         }
 
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+        .day-section {
+          margin-bottom: 48px;
         }
 
         .day-indicator {
-          margin-bottom: 16px;
+          display: flex;
+          align-items: baseline;
+          gap: 12px;
+          margin-bottom: 24px;
+          position: sticky;
+          top: 20px;
+          z-index: 10;
+          background: rgba(248, 250, 252, 0.8);
+          backdrop-filter: blur(8px);
+          padding: 8px 0;
         }
 
         .day-num {
-          font-size: 1.2rem;
-          font-weight: 700;
+          font-family: 'Outfit';
+          font-size: 1.75rem;
+          font-weight: 800;
           color: var(--primary-color);
-          margin-right: 8px;
         }
 
         .day-date {
+          font-size: 1rem;
           color: var(--text-muted);
-          font-size: 0.9rem;
+          font-weight: 600;
         }
 
         .day-cards {
+          position: relative;
+          padding-left: 32px;
           display: flex;
           flex-direction: column;
-          gap: 12px;
-          position: relative;
-          padding-left: 20px;
-          border-left: 2px dashed #E2E8F0;
-          margin-left: 10px;
+          gap: 20px;
+        }
+
+        .day-cards::before {
+          content: '';
+          position: absolute;
+          left: 10px;
+          top: 0;
+          bottom: 0;
+          width: 2px;
+          background: linear-gradient(to bottom, #E2E8F0, #E2E8F0 50%, transparent 50%);
+          background-size: 2px 12px;
         }
 
         .place-card {
-          display: flex;
-          align-items: flex-start;
-          gap: 16px;
-          padding: 16px;
-          border-radius: 16px;
-          background: white;
-          box-shadow: var(--shadow-sm);
           position: relative;
+          background: white;
+          border-radius: 20px;
+          padding: 24px;
+          border: 1px solid rgba(0,0,0,0.03);
+          box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .place-card::before {
           content: '';
           position: absolute;
           left: -27px;
-          top: 24px;
+          top: 30px;
           width: 12px;
           height: 12px;
-          background: var(--secondary-color);
+          background: var(--primary-color);
           border-radius: 50%;
-          border: 2px solid white;
+          border: 3px solid white;
+          box-shadow: 0 0 0 4px rgba(30, 58, 95, 0.1);
+        }
+
+        .place-card:hover {
+          transform: translateX(8px);
+          box-shadow: 0 12px 24px rgba(0,0,0,0.06);
+          border-color: var(--secondary-color);
         }
 
         .card-top {
           display: flex;
           align-items: center;
-          gap: 10px;
-          margin-bottom: 12px;
+          gap: 12px;
+          margin-bottom: 14px;
           flex-wrap: wrap;
         }
 
-        .card-time {
+        .card-time, .card-duration {
           display: flex;
           align-items: center;
-          gap: 4px;
-          font-size: 0.8rem;
-          font-weight: 600;
-          color: var(--secondary-color);
-          background: rgba(255, 154, 60, 0.08);
-          padding: 4px 10px;
-          border-radius: 6px;
-          white-space: nowrap;
-        }
-
-        .card-duration {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 0.8rem;
-          font-weight: 500;
+          gap: 5px;
+          font-size: 0.85rem;
+          font-weight: 700;
           color: #64748B;
           background: #F1F5F9;
           padding: 4px 10px;
-          border-radius: 6px;
-          white-space: nowrap;
+          border-radius: 8px;
         }
 
         .cat-badge {
-          font-size: 0.75rem;
-          font-weight: 700;
+          font-size: 0.8rem;
+          font-weight: 800;
           padding: 4px 10px;
-          border-radius: 6px;
-          display: flex;
-          align-items: center;
-          gap: 4px;
+          border-radius: 8px;
         }
 
-        .cat-food { background: #FEF2F2; color: #EF4444; }
-        .cat-sight { background: #F0F9FF; color: #0EA5E9; }
-        .cat-shop { background: #FAF5FF; color: #A855F7; }
-        .cat-act { background: #ECFDF5; color: #10B981; }
-        .cat-etc { background: #F8FAFC; color: #64748B; }
-
-        .card-content {
-          flex: 1;
-        }
+        .cat-food { background: #FFF7ED; color: #EA580C; }
+        .cat-sight { background: #F0F9FF; color: #0284C7; }
+        .cat-shop { background: #FAF5FF; color: #9333EA; }
+        .cat-act { background: #ECFDF5; color: #059669; }
+        .cat-etc { background: #F8FAFC; color: #475569; }
 
         .card-content h3 {
-          font-size: 1.15rem;
-          font-weight: 700;
-          margin-bottom: 6px;
-          color: var(--primary-color);
+          font-size: 1.25rem;
+          font-weight: 800;
+          margin-bottom: 8px;
+          color: #1a1a1a;
         }
 
         .place-desc {
           font-size: 0.95rem;
-          color: #475569;
-          line-height: 1.5;
-        }
-
-        .btn-delete-place {
-          align-self: flex-start;
-          color: #CBD5E1;
-          background: transparent;
-          transition: all 0.2s ease;
-          padding: 8px;
-          border-radius: 8px;
-        }
-
-        .btn-delete-place:hover {
-          color: #ff3b30;
-          background: rgba(255, 59, 48, 0.05);
+          line-height: 1.6;
+          color: #4B5563;
+          margin-bottom: 16px;
         }
 
         .memo-area {
+          background: #F8FAFC;
+          padding: 12px 16px;
+          border-radius: 12px;
           display: flex;
           align-items: center;
-          gap: 8px;
-          background: #F8FAFC;
-          padding: 8px 12px;
-          border-radius: 10px;
-          border: 1px solid #E2E8F0;
+          gap: 10px;
+          border: 1px dashed #CBD5E1;
         }
 
         .memo-icon {
@@ -550,37 +680,122 @@ const ScheduleView = ({ tripData, onBack, onGoToPacking }) => {
           border: none;
           background: transparent;
           font-size: 0.9rem;
-          color: var(--text-main);
           width: 100%;
           outline: none;
+          color: #1E293B;
+          font-weight: 500;
         }
 
-        .memo-input::placeholder {
-          color: #CBD5E1;
+        .btn-delete-place {
+          position: absolute;
+          top: 20px;
+          right: 20px;
+          opacity: 0;
+          transition: all 0.2s ease;
+          color: #94A3B8;
+        }
+
+        .place-card:hover .btn-delete-place {
+          opacity: 1;
+        }
+
+        .btn-delete-place:hover {
+          color: #EF4444;
+        }
+
+        /* Reservations & Other Styles */
+        .res-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .res-item {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 20px;
+          border-radius: 20px;
+          background: white;
+          border: 1px solid rgba(0,0,0,0.03);
+          box-shadow: var(--shadow-sm);
+        }
+
+        .unchecked {
+          width: 24px;
+          height: 24px;
+          border-radius: 8px;
+          border: 2px solid #CBD5E1;
+        }
+
+        .ai-chat-bar {
+          position: fixed;
+          bottom: 40px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: calc(100% - 40px);
+          max-width: 600px;
+          background: white;
+          box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+          border-radius: 24px;
+          padding: 10px;
+          z-index: 100;
+        }
+
+        .chat-icon {
+          background: #EFF6FF;
+          color: #2563EB;
+          padding: 10px;
+          border-radius: 14px;
+        }
+
+        .btn-send {
+          background: var(--primary-color);
+          box-shadow: 0 4px 12px rgba(30, 58, 95, 0.2);
         }
 
         @media (max-width: 640px) {
+          .day-indicator {
+            position: relative;
+            top: 0;
+          }
+          .day-cards {
+            padding-left: 20px;
+          }
+          .day-cards::before {
+            left: 0;
+          }
+          .place-card::before {
+            left: -37px;
+          }
           .trip-dest {
             font-size: 1.8rem;
           }
-          .trip-meta {
-            flex-direction: column;
-            gap: 4px;
-          }
-          .flex-between {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 12px;
-          }
-          .btn-save {
-            width: 100%;
-            justify-content: center;
-          }
-          .card-top {
-            gap: 6px;
-          }
         }
 
+        .btn-share-icon {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: white;
+          border: 1px solid #E2E8F0;
+          color: var(--text-muted);
+          transition: all 0.2s ease;
+        }
+
+        .btn-share-icon:hover {
+          border-color: var(--secondary-color);
+          color: var(--secondary-color);
+          background: rgba(255, 154, 60, 0.05);
+        }
+
+        .share-actions {
+          display: flex;
+          gap: 10px;
+        }
       `}</style>
     </div>
   );

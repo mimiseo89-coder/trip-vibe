@@ -39,20 +39,20 @@ const CreateTrip = ({ onBack, onSubmit }) => {
 
   return (
     <div className="create-trip-page">
-      <div className="container min-h-screen py-10">
+      <div className="create-trip-container">
         <motion.button 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
           className="btn-back"
           onClick={onBack}
         >
-          <ArrowLeft size={20} /> 돌아가기
+          <ArrowLeft size={18} /> 이전으로
         </motion.button>
 
-        <div className="form-container glass p-8 mt-6">
+        <div className="form-container">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
             className="form-header"
           >
             <h2 className="section-title">어디로, 어떤 여행을<br /><span>떠나고 싶으신가요?</span></h2>
@@ -62,7 +62,7 @@ const CreateTrip = ({ onBack, onSubmit }) => {
           <form onSubmit={handleSubmit} className="trip-form">
             {/* Destination */}
             <div className="form-group">
-              <label><MapPin size={18} /> 여행지</label>
+              <label><MapPin size={20} /> 여행지</label>
               <input 
                 type="text" 
                 name="destination"
@@ -77,7 +77,7 @@ const CreateTrip = ({ onBack, onSubmit }) => {
             <div className="form-row">
               {/* Dates */}
               <div className="form-group">
-                <label><CalendarIcon size={18} /> 출발일</label>
+                <label><CalendarIcon size={20} /> 출발일</label>
                 <input 
                   type="date" 
                   name="startDate"
@@ -88,7 +88,7 @@ const CreateTrip = ({ onBack, onSubmit }) => {
                 />
               </div>
               <div className="form-group">
-                <label><CalendarIcon size={18} /> 도착일</label>
+                <label><CalendarIcon size={20} /> 도착일</label>
                 <input 
                   type="date" 
                   name="endDate"
@@ -102,7 +102,7 @@ const CreateTrip = ({ onBack, onSubmit }) => {
 
             {/* Travelers */}
             <div className="form-group">
-              <label><Users size={18} /> 여행 인원 (명)</label>
+              <label><Users size={20} /> 여행 인원</label>
               <input 
                 type="number" 
                 name="travelers"
@@ -111,12 +111,13 @@ const CreateTrip = ({ onBack, onSubmit }) => {
                 value={formData.travelers}
                 onChange={handleChange}
                 className="input-field"
+                placeholder="여행하는 인원수를 입력하세요"
               />
             </div>
 
             {/* Style Selection */}
             <div className="form-group">
-              <label><Sparkles size={18} /> 여행 스타일</label>
+              <label><Sparkles size={20} /> 여행 스타일</label>
               <div className="style-grid">
                 {styles.map(style => (
                   <button
@@ -138,7 +139,7 @@ const CreateTrip = ({ onBack, onSubmit }) => {
               type="submit" 
               className="btn-submit"
             >
-              AI 일정 생성하기 <ArrowRight size={20} />
+              AI 일정 생성하기 <ArrowRight size={22} />
             </motion.button>
           </form>
         </div>
@@ -146,148 +147,197 @@ const CreateTrip = ({ onBack, onSubmit }) => {
 
       <style>{`
         .create-trip-page {
-          background: linear-gradient(135deg, #1E3A5F 0%, #0F172A 100%);
+          background: linear-gradient(135deg, #FFF5F7 0%, #FFFFFF 100%);
           min-height: 100vh;
-          color: white;
+          color: var(--text-main);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 40px 20px;
+        }
+
+        .create-trip-container {
+          width: 100%;
+          max-width: 650px;
+          margin: 0 auto;
         }
 
         .btn-back {
           display: flex;
           align-items: center;
           gap: 8px;
-          background: rgba(255, 255, 255, 0.1);
-          color: white;
-          padding: 8px 16px;
+          background: var(--white);
+          color: var(--text-main);
+          padding: 10px 20px;
           border-radius: 50px;
-          font-size: 0.9rem;
+          font-size: 0.95rem;
+          font-weight: 600;
+          box-shadow: var(--shadow-sm);
+          margin-bottom: 24px;
+          border: 1px solid rgba(0,0,0,0.05);
+          width: fit-content;
         }
 
         .form-container {
-          max-width: 600px;
-          margin-left: auto;
-          margin-right: auto;
-          border-radius: 24px;
+          background: var(--white);
+          border-radius: 32px;
+          padding: 40px;
+          box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+          border: 1px solid rgba(0,0,0,0.03);
+        }
+
+        .form-header {
+          text-align: center;
+          margin-bottom: 40px;
         }
 
         .section-title {
-          font-size: 2rem;
-          font-weight: 700;
-          margin-bottom: 0.5rem;
-          line-height: 1.3;
+          font-family: 'Outfit';
+          font-size: 2.25rem;
+          font-weight: 800;
+          margin-bottom: 1rem;
+          line-height: 1.2;
+          color: #1a1a1a;
         }
 
         .section-title span {
           color: var(--secondary-color);
+          background: linear-gradient(120deg, var(--secondary-color), #FF7043);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
         }
 
         .section-subtitle {
-          opacity: 0.7;
-          margin-bottom: 2.5rem;
+          opacity: 0.6;
+          font-size: 1.1rem;
+          max-width: 400px;
+          margin: 0 auto;
         }
 
         .trip-form {
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 28px;
         }
 
         .form-group {
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 10px;
         }
 
         .form-group label {
           display: flex;
           align-items: center;
-          gap: 6px;
-          font-size: 0.9rem;
-          font-weight: 600;
-          opacity: 0.9;
+          gap: 8px;
+          font-size: 1rem;
+          font-weight: 700;
+          color: #333;
+        }
+
+        .form-group label svg {
+          color: var(--secondary-color);
         }
 
         .form-row {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 16px;
+          gap: 24px;
         }
 
         .input-field {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 12px;
-          padding: 12px 16px;
-          color: white;
-          font-size: 1rem;
-          transition: var(--transition-smooth);
+          background: #F8FAFC;
+          border: 1px solid #E2E8F0;
+          border-radius: 16px;
+          padding: 14px 20px;
+          color: #1a1a1a;
+          font-size: 1.05rem;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .input-field:focus {
           border-color: var(--secondary-color);
-          background: rgba(255, 255, 255, 0.1);
+          background: #fff;
+          box-shadow: 0 0 0 4px rgba(255, 154, 60, 0.1);
           outline: none;
         }
 
         .style-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-          gap: 10px;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 12px;
         }
 
         .style-btn {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 6px;
-          padding: 12px;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 12px;
-          color: rgba(255, 255, 255, 0.6);
-          transition: var(--transition-smooth);
+          gap: 8px;
+          padding: 16px 12px;
+          background: #F8FAFC;
+          border: 2px solid transparent;
+          border-radius: 20px;
+          color: #64748B;
+          transition: all 0.3s ease;
+          cursor: pointer;
         }
 
         .style-btn:hover {
-          background: rgba(255, 255, 255, 0.1);
+          background: #F1F5F9;
+          transform: translateY(-2px);
         }
 
         .style-btn.active {
-          background: var(--secondary-color);
-          color: white;
+          background: #FFF7ED;
+          color: var(--secondary-color);
           border-color: var(--secondary-color);
-          box-shadow: 0 4px 12px rgba(255, 154, 60, 0.3);
+          box-shadow: 0 8px 16px rgba(255, 154, 60, 0.15);
         }
 
         .style-icon {
-          font-size: 1.5rem;
+          font-size: 1.75rem;
         }
 
         .style-label {
-          font-size: 0.8rem;
-          font-weight: 600;
+          font-size: 0.85rem;
+          font-weight: 700;
         }
 
         .btn-submit {
-          background: var(--secondary-color);
+          background: linear-gradient(135deg, var(--secondary-color) 0%, #FF7043 100%);
           color: white;
-          padding: 16px;
-          border-radius: 12px;
-          font-size: 1.1rem;
-          font-weight: 700;
+          padding: 18px;
+          border-radius: 18px;
+          font-size: 1.2rem;
+          font-weight: 800;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 10px;
-          margin-top: 10px;
-          box-shadow: 0 10px 20px rgba(255, 154, 60, 0.2);
+          gap: 12px;
+          margin-top: 12px;
+          box-shadow: 0 12px 24px rgba(255, 112, 67, 0.3);
+          transition: all 0.3s ease;
         }
 
-        @media (max-width: 480px) {
+        .btn-submit:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 15px 30px rgba(255, 112, 67, 0.4);
+        }
+
+        @media (max-width: 640px) {
+          .create-trip-page {
+            padding: 20px 16px;
+          }
+          .form-container {
+            padding: 30px 20px;
+            border-radius: 24px;
+          }
           .section-title {
-            font-size: 1.6rem;
+            font-size: 1.8rem;
           }
           .form-row {
             grid-template-columns: 1fr;
+            gap: 16px;
           }
           .style-grid {
             grid-template-columns: repeat(3, 1fr);

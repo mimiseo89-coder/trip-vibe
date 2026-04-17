@@ -5,7 +5,7 @@ import { ArrowLeft, Check, Plus, Trash2, Sparkles, ShoppingBag, Luggage, Briefca
 /**
  * PackingList Page - AI-powered trip packing assistant.
  */
-const PackingList = ({ tripData, onBack, onSaveTrip }) => {
+const PackingList = ({ tripData, onBack, onSaveTrip, isEmbedded }) => {
   const [items, setItems] = useState([]);
   const [newItemText, setNewItemText] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -107,28 +107,32 @@ const PackingList = ({ tripData, onBack, onSaveTrip }) => {
 
   return (
     <div className="packing-page">
-      <div className="container py-12 max-w-2xl">
-        <motion.button 
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="btn-back-light mb-8" 
-          onClick={onBack}
-        >
-          <ArrowLeft size={18} /> 일정으로 돌아가기
-        </motion.button>
+      <div className={`container ${isEmbedded ? '' : 'py-12 max-w-2xl'}`}>
+        {!isEmbedded && (
+          <motion.button 
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="btn-back-light mb-8" 
+            onClick={onBack}
+          >
+            <ArrowLeft size={18} /> 일정으로 돌아가기
+          </motion.button>
+        )}
 
-        <header className="page-header mb-10">
+        <header className={`page-header ${isEmbedded ? 'mb-6' : 'mb-10'}`}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <h1 className="page-title">
-              <span className="icon-badge"><Luggage size={28} /></span> 
+            <h1 className={`${isEmbedded ? 'embedded-title' : 'page-title'}`}>
+              <span className="icon-badge"><Luggage size={isEmbedded ? 20 : 28} /></span> 
               <span>{tripData?.destination} <span className="text-secondary">챙길 물건</span></span>
             </h1>
-            <p className="page-subtitle">
-              "설레는 마음만 가져가세요. 짐은 AI가 챙겨드릴게요."
-            </p>
+            {!isEmbedded && (
+              <p className="page-subtitle">
+                "설레는 마음만 가져가세요. 짐은 AI가 챙겨드릴게요."
+              </p>
+            )}
           </motion.div>
         </header>
 
@@ -213,8 +217,8 @@ const PackingList = ({ tripData, onBack, onSaveTrip }) => {
 
       <style>{`
         .packing-page {
-          min-height: 100vh;
-          background-color: var(--bg-light);
+          min-height: ${isEmbedded ? 'auto' : '100vh'};
+          background-color: ${isEmbedded ? 'transparent' : 'var(--bg-light)'};
           color: var(--text-main);
         }
 
@@ -248,6 +252,14 @@ const PackingList = ({ tripData, onBack, onSaveTrip }) => {
           font-size: 1.1rem;
           font-style: italic;
           margin-top: 12px;
+        }
+
+        .embedded-title {
+          font-size: 1.5rem;
+          font-weight: 800;
+          display: flex;
+          align-items: center;
+          gap: 12px;
         }
 
         .packing-controls {
